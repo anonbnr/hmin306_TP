@@ -86,10 +86,12 @@ public class CouplingParser {
 		
 		return (CompilationUnit) parser.createAST(null); // create and parse
 	}
+
+	//////////////////////////////////////////////////////////////////////////////////////////////////
+	/////////////////////////// Coupling related functions  //////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////////////////////////
 	
-	
-	
-	/*
+	/**
 	 * Returns the number of call between class A and B.
 	 */
 	public int getCouplingBetween(String callingClassName, String calledClassName) throws IOException { // Exo3
@@ -97,7 +99,7 @@ public class CouplingParser {
 		
 		int cpt =0;
 		if(callingClassName.equals(calledClassName)) { // check A != B
-			System.out.println("0");
+			System.out.println("Can not compute coupling in same class");
 			return 0; 
 		}
 		for (File fileEntry : javaFiles) { 
@@ -125,11 +127,11 @@ public class CouplingParser {
 		return cpt;
 	}
 	
-	/*
+	/**
 	 * Returns the total number of relation (call from a class to another).
 	 * Does not check if A <--> A.
 	 */
-	public int countAllRelationsInProject() throws IOException {
+	public int countAllCouplesInProject() throws IOException {
 		ArrayList<File> javaFiles = CouplingParser.listJavaFilesForProject(new File(projectPath));
 		
 		int numberOfCallingMethods = 0;
@@ -154,15 +156,15 @@ public class CouplingParser {
 		return numberOfCallingMethods;
 	}
 
-	/*
+	/**
 	 * Draws a sort of "weighted-coupling graphs". Used in exo 3 TP3.
 	 */
-	public ArrayList<Couple> getAllCouplingMetrics() throws IOException {
+	public ArrayList<Couple> makeCoupledWeightedGraph() throws IOException {
 		ArrayList<File> javaFiles = CouplingParser.listJavaFilesForProject(new File(projectPath));
 		
 		int numberOfMethods = 0;
 		ArrayList<Couple> couples = new ArrayList<Couple>();
-		String callingClass, calledClass; 
+		String source, target; 
 		for (File fileEntry : javaFiles) {
 			String content = FileUtils.readFileToString(fileEntry);
 			CompilationUnit parse = parse(content.toCharArray());
@@ -170,19 +172,19 @@ public class CouplingParser {
 			parse.accept(visitor);
 			
 			for (TypeDeclaration td : visitor.getTypes()) { // for each class A
-				callingClass =  td.getName().toString();
+				source =  td.getName().toString();
 				for(MethodDeclaration method : td.getMethods()){ // for each methods M in A
 					MethodInvocationVisitor visitor2 = new MethodInvocationVisitor();
 					method.accept(visitor2);
 					for (MethodInvocation methodInvocation : visitor2.getMethods()) { // for each method's invocation Mi from M
 						if(methodInvocation.resolveMethodBinding()!= null) {
 							numberOfMethods++;
-							calledClass = methodInvocation.resolveMethodBinding().getDeclaringClass().getName().toString();
-							if (!callingClass.equals(calledClass) ) { /* A != B */
-								if(Couple.isCoupleAlreadyInArray(couples, callingClass, calledClass)) { // we already know the couple
-									Couple.incrementCoupleCounter(couples, callingClass, calledClass);
+							target = methodInvocation.resolveMethodBinding().getDeclaringClass().getName().toString();
+							if (!source.equals(target) ) { /* A != B */
+								if(Couple.isCoupleAlreadyInArray(couples, source, target)) { // we already know the couple
+									Couple.incrementCoupleCounter(couples, source, target);
 								} else { // we add this new couple in the array
-									Couple c = new Couple(td.getName().toString(), calledClass, 1, 0);
+									Couple c = new Couple(td.getName().toString(), target, 1, 0);
 									couples.add(c);
 								}
 							}
@@ -198,110 +200,189 @@ public class CouplingParser {
 		return couples;
 	}
 	
-	/*
-	 * Used in question 2a from TP3.
-	 * Make a Hierarchical Cluster from code (analyzed in getAllCouplingMetrics()).
-	 * Store all the steps in a stack.
-	 * TODO Optimize it with only one loop for and save variables in if.
+	/**
+	 * Used in the creation of the hierarchical cluster.
+	 * 
+	 * @return an ArrayList of Clusters where a cluster contains a class.
+	 * @throws IOException
 	 */
-	public Stack<Cluster> makeHierarchicalCluster() throws IOException {		
-		ArrayList<Couple> couplesWithMetric = getAllCouplingMetrics();
+	public ArrayList<Cluster> initializeClusters() throws IOException{
+		ArrayList<File> javaFiles = CouplingParser.listJavaFilesForProject(new File(projectPath));
 		ArrayList<Cluster> clusters = new ArrayList<Cluster>();
-		Stack<Cluster> stack = new Stack<Cluster>();
-		// initialize the clusters
-		for(Couple couple : couplesWithMetric) {
-			ArrayList<String> classNames = new ArrayList<String>();
-			classNames.add(couple.getClassCalling());
-			classNames.add(couple.getClassCalled());
-			Cluster c = new Cluster(classNames, couple.getCpt());
-			clusters.add(c);
+		
+		// read all java files to fetch classes.
+		for (File fileEntry : javaFiles) {
+			String content = FileUtils.readFileToString(fileEntry);
+			CompilationUnit parse = parse(content.toCharArray());
+			TypeDeclarationVisitor visitor = new TypeDeclarationVisitor();
+			parse.accept(visitor);
+			
+			for (TypeDeclaration td : visitor.getTypes()) {
+				boolean isAlreadyInCluster = false; // check that td is not already in clusters
+				for(Cluster c : clusters) {
+					if(c.getClasses().contains(td.getName().toString())) {
+						isAlreadyInCluster = true;
+					}
+				}
+				if(!isAlreadyInCluster) {
+					Cluster cls = new Cluster(td.getName().toString(), 0);
+					clusters.add(cls);
+				}
+			}	
 		}
-		System.out.println("Original clusters: ");
-		clusters.forEach(cluster -> System.out.println(cluster.toString()));
-		// make clusters until there is no class left
-		int firstClusterIndex = 0;
-		int secondClusterIndex = 0;
-		while(clusters.size()>1){
-			int bestUnionScore = 0;
-			// look for best union to do
-			for(int i = 0 ; i < clusters.size() ; i++) {
-				Cluster currentCluster = clusters.get(i);
-				for(int j = 0 ; j < clusters.size() ; j++) {
-					Cluster comparativeCluster = clusters.get(j);
-					if(currentCluster!=comparativeCluster && currentCluster.isCoupledWith(comparativeCluster)) {
-						if((currentCluster.getCouplingValue() + comparativeCluster.getCouplingValue()) > bestUnionScore) {
-							bestUnionScore = currentCluster.getCouplingValue() + comparativeCluster.getCouplingValue();
-							firstClusterIndex= i;
-							secondClusterIndex= j;
+		return clusters;
+	}
+	
+	/**
+	 * Returns the call metric between two clusters.
+	 * 
+	 * @param source : source Cluster
+	 * @param target : target Cluster
+	 * @return the number of calls among all the classes from two clusters
+	 * @throws IOException
+	 */
+	public int getScoreBetweenClusters(ArrayList<Couple> couples, Cluster source, Cluster target) throws IOException {
+		int score = 0;
+		for(String sourceCls : source.getClasses()) {
+			for(String targetCls : target.getClasses()) {
+				if(!sourceCls.equals(targetCls)) {
+					for(Couple c : couples) {
+						if(c.getSource().equals(sourceCls) && c.getTarget().equals(targetCls)) {
+							score += c.getCpt();
 						}
 					}
 				}
 			}
-			Cluster firstPartCluster = clusters.get(firstClusterIndex);
-			Cluster secondPartCluster = clusters.get(secondClusterIndex);
-			Cluster newCluster = new Cluster(firstPartCluster.getClasses(), bestUnionScore);
-			newCluster.addClasses(secondPartCluster.getClasses());
+		}
+		return score;
+	}
+	
+	/**
+	 * Create the hierarchical cluster of a Java program based on coupling metric.
+	 * Can also be used as preprocessing to count all calls.
+	 * Used for question 2a from TP3.
+	 * 
+	 * @return a Stack<Cluster> representing the hierarchical cluster.
+	 * @throws IOException
+	 */
+	public Stack<Cluster> makeHierarchicalCluster() throws IOException {
+		// variables
+		ArrayList<Cluster> clusters = initializeClusters();
+		Stack<Cluster> hierarchicalCluster = new Stack<Cluster>();
+		ArrayList<Couple> couples = makeCoupledWeightedGraph();
+		Cluster sourceCluster, targetCluster, firstPart, secondPart, newCluster;
+		int bestScore, firstIndex, secondIndex;
+		
+		// ouputs
+		System.out.println("Original classes are put in clusters: ");
+		clusters.forEach(c -> System.out.println(c));
+		System.out.println("\nCreation of hierarchical clusters:");
+		
+		// while we don't have one final cluster
+		while(clusters.size()>1) { 
+			bestScore = 0;
+			firstIndex = 0;
+			secondIndex = 0;
+			
+			// look for the best clusters to fusionned
+			for(int i = 0 ; i < clusters.size() ; i++) {
+				sourceCluster = clusters.get(i);
+				for(int j = 0 ; j < clusters.size() ; j++) {
+					targetCluster = clusters.get(j);
+					if(i != j) {
+						int coupleScore = getScoreBetweenClusters(couples, sourceCluster, targetCluster);
+						if(bestScore < coupleScore){
+							bestScore = coupleScore;
+							firstIndex = i;
+							secondIndex = j;
+						}
+					}					
+				}
+			}
+			
+			// break condition if there is no more call
+			if(bestScore == 0)
+				break;
+			
+			// fusion best clusters
+			firstPart = clusters.get(firstIndex);
+			secondPart = clusters.get(secondIndex);
+			newCluster = new Cluster(firstPart.getClasses(),
+									bestScore + firstPart.getCouplingScore() + secondPart.getCouplingScore());
+			newCluster.addClasses(secondPart.getClasses());
+			clusters.remove(firstPart);				// remove the
+			clusters.remove(secondPart);			// composed clusters
 			clusters.add(newCluster);
-			clusters.remove(firstClusterIndex);
-			clusters.remove(secondPartCluster);
-			stack.push(newCluster);
-			System.out.println("\nFusion of: "+firstPartCluster + " and " + secondPartCluster);
+			hierarchicalCluster.push(newCluster);	// and push fusion
+			
+			// ouputs
+			System.out.println("\nFusion of: "+firstPart + " and " + secondPart
+								+ ", they have " + bestScore + " call(s).");
 			System.out.println("Clusters: ");
 			clusters.forEach(cluster -> System.out.println(cluster.toString()));
 		}
-		return stack;
+		// outputs
+		System.out.println("Process done.\n Final clusters:");
+		clusters.forEach(cluster -> System.out.println(cluster.toString()));
+		
+		return hierarchicalCluster;
 	}
 	
-	/*
+	/**
 	 * Silent version of makeHierarchicalCluster(), used for question 2b from TP3.
 	 * Also store extra details in the stack to facilitate our work.
 	 */
 	public Stack<Cluster> silentHierarchicalClusterMaker() throws IOException {
-		ArrayList<Couple> couplesWithMetric = getAllCouplingMetrics();
-		ArrayList<Cluster> clusters = new ArrayList<Cluster>();
-		Stack<Cluster> stack = new Stack<Cluster>();
-		// initialize the clusters
-		for(Couple couple : couplesWithMetric) {
-			ArrayList<String> classNames = new ArrayList<String>();
-			classNames.add(couple.getClassCalling());
-			classNames.add(couple.getClassCalled());
-			Cluster c = new Cluster(classNames, couple.getCpt());
-			clusters.add(c);
-		}
-		// make clusters until there is no class left
-		int firstClusterIndex = 0;
-		int secondClusterIndex = 0;
-		while(clusters.size()>1){
-			int bestUnionScore = 0;
-			// look for best union to do
+		// variables
+		ArrayList<Cluster> clusters = initializeClusters();
+		Stack<Cluster> hierarchicalCluster = new Stack<Cluster>();
+		ArrayList<Couple> couples = makeCoupledWeightedGraph();
+		Cluster sourceCluster, targetCluster, firstPart, secondPart, newCluster;
+		int bestScore, firstIndex, secondIndex;
+		
+		// while we don't have one final cluster
+		while(clusters.size()>1) { 
+			bestScore = 0;
+			firstIndex = 0;
+			secondIndex = 0;
+			
+			// look for the best clusters to fusionned
 			for(int i = 0 ; i < clusters.size() ; i++) {
-				Cluster currentCluster = clusters.get(i);
+				sourceCluster = clusters.get(i);
 				for(int j = 0 ; j < clusters.size() ; j++) {
-					Cluster comparativeCluster = clusters.get(j);
-					if(currentCluster!=comparativeCluster && currentCluster.isCoupledWith(comparativeCluster)) {
-						if((currentCluster.getCouplingValue() + comparativeCluster.getCouplingValue()) > bestUnionScore) {
-							bestUnionScore = currentCluster.getCouplingValue() + comparativeCluster.getCouplingValue();
-							firstClusterIndex= i;
-							secondClusterIndex= j;
+					targetCluster = clusters.get(j);
+					if(i != j) {
+						int coupleScore = getScoreBetweenClusters(couples, sourceCluster, targetCluster);
+						if(bestScore < coupleScore){
+							bestScore = coupleScore;
+							firstIndex = i;
+							secondIndex = j;
 						}
-					}
+					}					
 				}
 			}
-			Cluster firstPartCluster = clusters.get(firstClusterIndex);
-			Cluster secondPartCluster = clusters.get(secondClusterIndex);
-			Cluster newCluster = new Cluster(firstPartCluster.getClasses(), bestUnionScore);
-			newCluster.addClasses(secondPartCluster.getClasses());
+			
+			// break condition if there is no more call
+			if(bestScore == 0)
+				break;
+			
+			// fusion best clusters
+			firstPart = clusters.get(firstIndex);
+			secondPart = clusters.get(secondIndex);
+			newCluster = new Cluster(firstPart.getClasses(),
+									bestScore + firstPart.getCouplingScore() + secondPart.getCouplingScore());
+			newCluster.addClasses(secondPart.getClasses());
+			clusters.remove(firstPart);				// remove the
+			clusters.remove(secondPart);			// composed clusters
 			clusters.add(newCluster);
-			clusters.remove(firstClusterIndex);
-			clusters.remove(secondPartCluster);
-			stack.push(firstPartCluster);
-			stack.push(secondPartCluster);
-			stack.push(newCluster);
-		}
-		return stack;
+			hierarchicalCluster.push(firstPart);	// and push fusion
+			hierarchicalCluster.push(secondPart);	// and push fusion
+			hierarchicalCluster.push(newCluster);	// and push fusion
+		}		
+		return hierarchicalCluster;
 	}
 	
-	/*
+	/**
 	 * Used in question 2b from TP3
 	 * Computes the partition of a program based on its hierarchical cluster.
 	 */
@@ -310,14 +391,17 @@ public class CouplingParser {
 		Stack<Cluster> stackOfCluster = silentHierarchicalClusterMaker();
 		ArrayList<Cluster> partition = new ArrayList<Cluster>();
 		while(!stackOfCluster.isEmpty()) {
+			
 			Cluster father = stackOfCluster.pop();
 			Cluster secondSon = stackOfCluster.pop();
 			Cluster firstSon = stackOfCluster.pop();
-			System.out.println("\nFather weight: " + father.getCouplingValue());
-			System.out.println("Average of sons weight: " + Math.ceil((firstSon.getCouplingValue()+secondSon.getCouplingValue())/2));
-			if(father.getCouplingValue() > Math.ceil((firstSon.getCouplingValue()+secondSon.getCouplingValue())/2)){
+			System.out.println("\nFather weight: " + father.getCouplingScore());
+			System.out.println("Average of sons weight: " + Math.ceil((firstSon.getCouplingScore()+secondSon.getCouplingScore())/2));
+			if(father.getCouplingScore() > Math.ceil((firstSon.getCouplingScore()+secondSon.getCouplingScore())/2)){
 				partition.add(father);
 				System.out.println("We add father to partition.");
+			} else {
+				System.out.println("Weight inferior or equal, his sons are not part of the partition.");
 			}
 			System.out.println("Partition(s):");
 			partition.forEach(p -> System.out.println(p));

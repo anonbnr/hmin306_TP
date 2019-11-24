@@ -18,12 +18,12 @@ public class Main {
 	public static void main(String[] args) throws IOException {
 		
 		//*** Choose a Java project ***//
-		String defaultPath = "/home/amapai/workspaces/eclipse-workspace/step2"; 		// Ami's path
+		String defaultPath = "/home/amapai/workspaces/eclipse-workspace/HMIN306_Seriai/src"; // "/home/amapai/workspaces/eclipse-workspace/step2"; // "~/git/hmin306_TP/argouml/ArgoUML-0.34\"; // "/home/amapai/workspaces/eclipse-workspace/HMIN306_Seriai/src";		// Ami's path
 		// String defaultPath = "/home/anonbnr/eclipse-workspace/design_patterns/src"; 	// Bachar's path
 		System.out.println("Analyze will be on project " + defaultPath + "\n");
 		//* Used for TP4 *//
-		// String defaultPathSecondProject = "anotherVersionOfProgram'sPath"; 			// Ami's path
-		// String defaultPathSecondProject = "anotherVersionOfProgram'sPath"; 			// Bachar's path
+		// String defaultPathSecondProject = "~/git/hmin306_TP/argouml/ArgoUML-0.32.2"; 			// Ami's path
+		// String defaultPathSecondProject = "argouml/ArgoUML-0.32.2"; 			// Bachar's path
 		
 		//*** Storing paths ***//
 		String[] paths = new String[2];

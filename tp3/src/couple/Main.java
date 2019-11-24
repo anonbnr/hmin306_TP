@@ -24,8 +24,8 @@ public class Main {
 		switch(choice) {
 			case 1:
 				System.out.println("Here is the coupling weighted graph between all classes from "+pathToSource);
-				parser.getAllCouplingMetrics()
-						.forEach(c -> System.out.println(c.getClassCalling()+"<-["+c.getCpt()+"/"+c.getTotalNumberOfRelations()+"]->"+c.getClassCalled()));
+				parser.makeCoupledWeightedGraph()
+						.forEach(c -> System.out.println(c.getSource()+"<-["+c.getCpt()+"/"+c.getTotalNumberOfRelations()+"]->"+c.getTarget()));
 				break;
 			case 2:
 				System.out.println("Here is the hierarchical coupling cluster process:");

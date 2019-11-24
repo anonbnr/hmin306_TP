@@ -7,30 +7,30 @@ import java.util.ArrayList;
  */
 public class Couple {
 
-	String classCalling;
-	String classCalled;
+	String source;
+	String target;
 	int totalNumberOfRelations;
 	int cpt;
 	float score;
 	
 	public Couple(String classCalling, String classCalled, int cpt, float score) {
 		super();
-		this.classCalling = classCalling;
-		this.classCalled = classCalled;
+		this.source = classCalling;
+		this.target = classCalled;
 		this.cpt = cpt;
 		this.score = score;
 	}
-	public String getClassCalling() {
-		return classCalling;
+	public String getSource() {
+		return source;
 	}
-	public void setClassCalling(String classCalling) {
-		this.classCalling = classCalling;
+	public void setSource(String classCalling) {
+		this.source = classCalling;
 	}
-	public String getClassCalled() {
-		return classCalled;
+	public String getTarget() {
+		return target;
 	}
-	public void setClassCalled(String classCalled) {
-		this.classCalled = classCalled;
+	public void setTarget(String classCalled) {
+		this.target = classCalled;
 	}
 	public int getTotalNumberOfRelations() {
 		return totalNumberOfRelations;
@@ -67,8 +67,8 @@ public class Couple {
 	 */
 	static boolean isCoupleAlreadyInArray(ArrayList<Couple> couples, String callingClass, String calledClass){
 		for(Couple c : couples) {
-			if( c.getClassCalling().equals(callingClass)&&c.getClassCalled().equals(calledClass)  || /* A <--> B */
-			  c.getClassCalling().equals(calledClass)&&c.getClassCalled().equals(callingClass) ) { /* B <--> A */
+			if( c.getSource().equals(callingClass)&&c.getTarget().equals(calledClass)  || /* A <--> B */
+			  c.getSource().equals(calledClass)&&c.getTarget().equals(callingClass) ) { /* B <--> A */
 					return true;
 			}
 		}
@@ -82,8 +82,8 @@ public class Couple {
 	 */
 	static void incrementCoupleCounter(ArrayList<Couple> couples, String callingClass, String calledClass){
 		for(Couple c : couples) {
-			if((c.getClassCalling().equals(callingClass)&&c.getClassCalled().equals(calledClass))  || /* A <--> B */
-			   (c.getClassCalling().equals(calledClass)&&c.getClassCalled().equals(callingClass))) { // B <--> A
+			if((c.getSource().equals(callingClass)&&c.getTarget().equals(calledClass))  || /* A <--> B */
+			   (c.getSource().equals(calledClass)&&c.getTarget().equals(callingClass))) { // B <--> A
 					c.incrementCpt();
 			}
 		}

@@ -8,17 +8,25 @@ import java.util.ArrayList;
 public class Cluster {
 
 	private ArrayList<String> classes;
-	private int couplingInCluster;
+	private int couplingScore;
+	
+	public Cluster(String cls, int couplingInCluster) {
+		super();
+		ArrayList<String> array = new ArrayList<String>();
+		array.add(cls);
+		this.classes = array;
+		this.couplingScore = couplingInCluster;
+	}
 	
 	public Cluster(ArrayList<String> classes, int couplingInCluster) {
 		super();
 		this.classes = new ArrayList<String>(classes);
-		this.couplingInCluster = couplingInCluster;
+		this.couplingScore = couplingInCluster;
 	}
 
 	public Cluster(Cluster other) {
 		this.classes = new ArrayList<String>(other.getClasses());
-		this.couplingInCluster = other.getCouplingValue();
+		this.couplingScore = other.getCouplingScore();
 	}
 
 	public ArrayList<String> getClasses() {
@@ -29,12 +37,12 @@ public class Cluster {
 		this.classes = classes;
 	}
 
-	public int getCouplingValue() {
-		return couplingInCluster;
+	public int getCouplingScore() {
+		return couplingScore;
 	}
 
 	public void setCouplingInCluster(int couplingInCLuster) {
-		this.couplingInCluster = couplingInCLuster;
+		this.couplingScore = couplingInCLuster;
 	}
 	
 	public void addClasses(ArrayList<String> classesToAdd) {
@@ -47,7 +55,7 @@ public class Cluster {
 	
 	@Override
 	public String toString() {
-		return "Cluster [classes=" + classes + ", couplingInCluster=" + couplingInCluster + "]";
+		return "Cluster [classes=" + classes + ", couplingScore=" + couplingScore + "]";
 	}
 
 	boolean isCoupledWith(Cluster other){
@@ -56,6 +64,12 @@ public class Cluster {
 				return true;
 		}
 		return false;
+	}
+
+	public void setClass(String cls) {
+		ArrayList<String> c = new ArrayList<String>();
+		c.add(cls);
+		this.classes = c;
 	}
 	
 }
