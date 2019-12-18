@@ -109,55 +109,40 @@ public class CouplingParser {
 			parse.accept(visitor);
 			
 			for (TypeDeclaration td : visitor.getTypes()) { // for each class
-				if(callingClassName.equals(td.getName().toString())) {
-					for(MethodDeclaration method : td.getMethods()){ // in each methods from td class
-						MethodInvocationVisitor visitor2 = new MethodInvocationVisitor();
-						method.accept(visitor2);
-						for (MethodInvocation methodInvocation : visitor2.getMethods()) { // look for a call in that method
-							if(methodInvocation.resolveMethodBinding()!= null) {
-								if (calledClassName.equals(methodInvocation.resolveMethodBinding().getDeclaringClass().getName().toString()) ) {
-									cpt++;
-								}
-							} 
-						}
-					}
-				}
+			    if(callingClassName.equals(td.getName().toString())) {       // A -> B
+                    for(MethodDeclaration method : td.getMethods()){ // in each methods from td class
+                        MethodInvocationVisitor visitor2 = new MethodInvocationVisitor();
+                        method.accept(visitor2);
+                        for (MethodInvocation methodInvocation : visitor2.getMethods()) { // look for a call in that method
+                            if(methodInvocation.resolveMethodBinding()!= null) {
+                                if (calledClassName.equals(methodInvocation.resolveMethodBinding().getDeclaringClass().getName().toString()) ) {
+                                    cpt++;
+                                }
+                            }
+                        }
+                    }
+                }
+			    else if(calledClassName.equals(td.getName().toString())) {   // B -> A
+			        for(MethodDeclaration method : td.getMethods()){ // in each methods from td class
+			            MethodInvocationVisitor visitor2 = new MethodInvocationVisitor();
+			            method.accept(visitor2);
+			            for (MethodInvocation methodInvocation : visitor2.getMethods()) { // look for a call in that method
+			                if(methodInvocation.resolveMethodBinding()!= null) {
+			                    if (callingClassName.equals(methodInvocation.resolveMethodBinding().getDeclaringClass().getName().toString()) ) {
+			                        cpt++;
+			                    }
+			                }
+			            }
+			        }
+			    }
 			}
 		}
 		return cpt;
 	}
 	
-	/**
-	 * Returns the total number of relation (call from a class to another).
-	 * Does not check if A <--> A.
-	 */
-	public int countAllCouplesInProject() throws IOException {
-		ArrayList<File> javaFiles = CouplingParser.listJavaFilesForProject(new File(projectPath));
-		
-		int numberOfCallingMethods = 0;
-		for (File fileEntry : javaFiles) { // for each class A
-			String content = FileUtils.readFileToString(fileEntry);
-			CompilationUnit parse = parse(content.toCharArray());
-			TypeDeclarationVisitor visitor = new TypeDeclarationVisitor();
-			parse.accept(visitor);
-			
-			for (TypeDeclaration td : visitor.getTypes()) { // in each method M from A
-				for(MethodDeclaration method : td.getMethods()){
-					MethodInvocationVisitor visitor2 = new MethodInvocationVisitor();
-					method.accept(visitor2);
-					for (MethodInvocation methodInvocation : visitor2.getMethods()) { // in each method invocation MI in M.
-						if(methodInvocation.resolveMethodBinding()!= null) { // if it is attached to a class, if there is a call.
-							numberOfCallingMethods++;
-						} 
-					}
-				}
-			}
-		}
-		return numberOfCallingMethods;
-	}
 
 	/**
-	 * Draws a sort of "weighted-coupling graphs". Used in exo 3 TP3.
+	 * Make an ArrayList of Couple (weight associated to 2 class). Used in exo 3 TP3.
 	 */
 	public ArrayList<Couple> makeCoupledWeightedGraph() throws IOException {
 		ArrayList<File> javaFiles = CouplingParser.listJavaFilesForProject(new File(projectPath));
@@ -172,19 +157,19 @@ public class CouplingParser {
 			parse.accept(visitor);
 			
 			for (TypeDeclaration td : visitor.getTypes()) { // for each class A
-				source =  td.getName().toString();
+				source =  td.getName().toString();//().getClass().getPackage().getName();//.getPackage().getName() + "." + td.toString();
 				for(MethodDeclaration method : td.getMethods()){ // for each methods M in A
 					MethodInvocationVisitor visitor2 = new MethodInvocationVisitor();
 					method.accept(visitor2);
 					for (MethodInvocation methodInvocation : visitor2.getMethods()) { // for each method's invocation Mi from M
-						if(methodInvocation.resolveMethodBinding()!= null) {
-							numberOfMethods++;
-							target = methodInvocation.resolveMethodBinding().getDeclaringClass().getName().toString();
+						if(methodInvocation.resolveMethodBinding()!= null) {						    
+							target = methodInvocation.resolveMethodBinding().getDeclaringClass().getName();
 							if (!source.equals(target) ) { /* A != B */
+	                            numberOfMethods++;
 								if(Couple.isCoupleAlreadyInArray(couples, source, target)) { // we already know the couple
 									Couple.incrementCoupleCounter(couples, source, target);
 								} else { // we add this new couple in the array
-									Couple c = new Couple(td.getName().toString(), target, 1, 0);
+									Couple c = new Couple(source, target, 1, 0);
 									couples.add(c);
 								}
 							}
@@ -234,42 +219,17 @@ public class CouplingParser {
 	}
 	
 	/**
-	 * Returns the call metric between two clusters.
-	 * 
-	 * @param source : source Cluster
-	 * @param target : target Cluster
-	 * @return the number of calls among all the classes from two clusters
-	 * @throws IOException
-	 */
-	public int getScoreBetweenClusters(ArrayList<Couple> couples, Cluster source, Cluster target) throws IOException {
-		int score = 0;
-		for(String sourceCls : source.getClasses()) {
-			for(String targetCls : target.getClasses()) {
-				if(!sourceCls.equals(targetCls)) {
-					for(Couple c : couples) {
-						if(c.getSource().equals(sourceCls) && c.getTarget().equals(targetCls)) {
-							score += c.getCpt();
-						}
-					}
-				}
-			}
-		}
-		return score;
-	}
-	
-	/**
 	 * Create the hierarchical cluster of a Java program based on coupling metric.
 	 * Can also be used as preprocessing to count all calls.
 	 * Used for question 2a from TP3.
 	 * 
-	 * @return a Stack<Cluster> representing the hierarchical cluster.
+	 * @return a Stack @Cluster representing the hierarchical cluster.
 	 * @throws IOException
 	 */
-	public Stack<Cluster> makeHierarchicalCluster() throws IOException {
+	public Stack<Cluster> makeHierarchicalCluster(ArrayList<Cluster> clusters,
+	        ArrayList<Couple> couples) throws IOException {
 		// variables
-		ArrayList<Cluster> clusters = initializeClusters();
-		Stack<Cluster> hierarchicalCluster = new Stack<Cluster>();
-		ArrayList<Couple> couples = makeCoupledWeightedGraph();
+	    Stack<Cluster> hierarchicalCluster = new Stack<Cluster>();
 		Cluster sourceCluster, targetCluster, firstPart, secondPart, newCluster;
 		int bestScore, firstIndex, secondIndex;
 		
@@ -290,7 +250,7 @@ public class CouplingParser {
 				for(int j = 0 ; j < clusters.size() ; j++) {
 					targetCluster = clusters.get(j);
 					if(i != j) {
-						int coupleScore = getScoreBetweenClusters(couples, sourceCluster, targetCluster);
+						int coupleScore = sourceCluster.getScoreBetweenClusters(couples, targetCluster);
 						if(bestScore < coupleScore){
 							bestScore = coupleScore;
 							firstIndex = i;
@@ -332,11 +292,10 @@ public class CouplingParser {
 	 * Silent version of makeHierarchicalCluster(), used for question 2b from TP3.
 	 * Also store extra details in the stack to facilitate our work.
 	 */
-	public Stack<Cluster> silentHierarchicalClusterMaker() throws IOException {
+	public Stack<Cluster> silentHierarchicalClusterMaker(ArrayList<Cluster> clusters, 
+            ArrayList<Couple> couples) throws IOException {
 		// variables
-		ArrayList<Cluster> clusters = initializeClusters();
-		Stack<Cluster> hierarchicalCluster = new Stack<Cluster>();
-		ArrayList<Couple> couples = makeCoupledWeightedGraph();
+        Stack<Cluster> hierarchicalCluster = new Stack<Cluster>();
 		Cluster sourceCluster, targetCluster, firstPart, secondPart, newCluster;
 		int bestScore, firstIndex, secondIndex;
 		
@@ -352,7 +311,7 @@ public class CouplingParser {
 				for(int j = 0 ; j < clusters.size() ; j++) {
 					targetCluster = clusters.get(j);
 					if(i != j) {
-						int coupleScore = getScoreBetweenClusters(couples, sourceCluster, targetCluster);
+						int coupleScore = sourceCluster.getScoreBetweenClusters(couples, targetCluster);
 						if(bestScore < coupleScore){
 							bestScore = coupleScore;
 							firstIndex = i;
@@ -388,8 +347,9 @@ public class CouplingParser {
 	 */
 	public ArrayList<Cluster> makePartition() throws IOException {
 		System.out.println("\nPartition construction");
-		Stack<Cluster> stackOfCluster = silentHierarchicalClusterMaker();
+		Stack<Cluster> stackOfCluster = silentHierarchicalClusterMaker(initializeClusters(), makeCoupledWeightedGraph());
 		ArrayList<Cluster> partition = new ArrayList<Cluster>();
+		
 		while(!stackOfCluster.isEmpty()) {
 			
 			Cluster father = stackOfCluster.pop();
@@ -397,12 +357,14 @@ public class CouplingParser {
 			Cluster firstSon = stackOfCluster.pop();
 			System.out.println("\nFather weight: " + father.getCouplingScore());
 			System.out.println("Average of sons weight: " + Math.ceil((firstSon.getCouplingScore()+secondSon.getCouplingScore())/2));
+			
 			if(father.getCouplingScore() > Math.ceil((firstSon.getCouplingScore()+secondSon.getCouplingScore())/2)){
 				partition.add(father);
 				System.out.println("We add father to partition.");
 			} else {
 				System.out.println("Weight inferior or equal, his sons are not part of the partition.");
 			}
+			
 			System.out.println("Partition(s):");
 			partition.forEach(p -> System.out.println(p));
 		}

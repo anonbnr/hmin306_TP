@@ -9,6 +9,11 @@ import java.util.Scanner;
  */
 public class Main {
 
+	/**
+	 * 
+	 * @param args
+	 * @throws IOException
+	 */
 	public static void main(String[] args) throws IOException {
 		String pathToSource = args[0];
 		CouplingParser parser = new CouplingParser(pathToSource);
@@ -17,6 +22,7 @@ public class Main {
 				"\n1. Coupling Weighted Graph between all classes." +
 				"\n2. Hierarchical coupling cluster algorithm output." +
 				"\n3. Partition algorithm output." +
+				"\n4. To have all those informations with Spoon." +
 				"\n0 To quit.");
 		Scanner sc = new Scanner(System.in);
 		int choice = sc.nextInt();
@@ -29,7 +35,7 @@ public class Main {
 				break;
 			case 2:
 				System.out.println("Here is the hierarchical coupling cluster process:");
-				parser.makeHierarchicalCluster();
+				parser.makeHierarchicalCluster(parser.initializeClusters(), parser.makeCoupledWeightedGraph());
 						//.forEach(c -> System.out.println("Final cluster: "+c));
 				break;
 			case 3:
@@ -38,6 +44,8 @@ public class Main {
 				System.out.println("\nFinal partition:");
 				partition.forEach(cluster -> System.out.println(cluster));
 				break;
+			case 4:
+			    Spoon.main(args);
 			case 0:
 				return;
 			default:

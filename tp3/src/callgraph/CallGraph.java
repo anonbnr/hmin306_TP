@@ -64,9 +64,7 @@ public class CallGraph {
 									invocationName = type.getName()+ "::" + invocation.getName().toString();
 								else
 									invocationName = expr + "::" + invocation.getName().toString();
-							}
-							
-							else
+							} else
 								invocationName = cls.getName().toString() + "::" + invocation.getName().toString();
 							
 							graph.vertices.add(invocationName);

@@ -150,9 +150,7 @@ public class Parser {
 					
 					if (type != null) 
 						System.out.println(type.getName() + "::" + methodInvocation.getName());
-				}
-				
-				else
+				} else
 					System.out.println(expr + "::" + methodInvocation.getName());
 			}
 			

@@ -1,5 +1,6 @@
 package couple;
 
+import java.io.IOException;
 import java.util.ArrayList;
 
 /**
@@ -71,5 +72,28 @@ public class Cluster {
 		c.add(cls);
 		this.classes = c;
 	}
+	
+	 /**
+     * Returns the call metric between two clusters.
+     * 
+     * @param target : target Cluster
+     * @return the number of calls among all the classes from two clusters
+     * @throws IOException
+     */
+    public int getScoreBetweenClusters(ArrayList<Couple> couples, Cluster target) throws IOException {
+        int score = 0;
+        for(String sourceCls : this.getClasses()) {
+            for(String targetCls : target.getClasses()) {
+                if(!sourceCls.equals(targetCls)) {
+                    for(Couple c : couples) {
+                        if(c.getSource().equals(sourceCls) && c.getTarget().equals(targetCls)) {
+                            score += c.getCpt();
+                        }
+                    }
+                }
+            }
+        }
+        return score;
+    }
 	
 }
