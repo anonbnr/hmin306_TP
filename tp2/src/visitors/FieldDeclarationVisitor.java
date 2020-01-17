@@ -4,11 +4,15 @@ import java.util.ArrayList;
 
 import org.eclipse.jdt.core.dom.ASTVisitor;
 import org.eclipse.jdt.core.dom.FieldDeclaration;
-import org.eclipse.jdt.core.dom.SimpleName;
 
+/**
+ * A FieldDeclaration node visitor. It's used for field-level information extraction.
+ * @author anonbnr
+ * @author Amandine Paillard
+ *
+ */
 public class FieldDeclarationVisitor extends ASTVisitor {
 	private ArrayList<FieldDeclaration> fields = new ArrayList<>();
-	private ArrayList<SimpleName> names = new ArrayList<>();
 	
 	@Override
 	public boolean visit(FieldDeclaration node) {
@@ -16,12 +20,15 @@ public class FieldDeclarationVisitor extends ASTVisitor {
 		return super.visit(node);
 	}
 	
-	@Override
-	public boolean visit(SimpleName node) {
-		names.add(node);
-		return super.visit(node);
-	}
+	public ArrayList<FieldDeclaration> getFieldDeclarations() {return fields;}
 	
-	public ArrayList<FieldDeclaration> getFields() {return fields;}
-	public ArrayList<SimpleName> getNames() {return names;}
+	/**
+	 * @return the total number of fields visited in the field declarations
+	 */
+	public long getNbFields() {
+		return this.getFieldDeclarations()
+				.stream()
+				.map(fieldDeclaration -> fieldDeclaration.fragments().size())
+				.reduce(0, Integer::sum);
+	}
 }

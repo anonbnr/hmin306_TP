@@ -6,6 +6,13 @@ import org.eclipse.jdt.core.dom.ASTVisitor;
 import org.eclipse.jdt.core.dom.MethodInvocation;
 import org.eclipse.jdt.core.dom.SuperMethodInvocation;
 
+/**
+ * A MethodInvocation and SuperMethodInvocation node visitor. It is used for method-level information extraction,
+ * particularly for invocations.
+ * @author anonbnr
+ * @author Amandine Paillard
+ *
+ */
 public class MethodInvocationVisitor extends ASTVisitor {
 	private ArrayList<MethodInvocation> methods = new ArrayList<>();
 	private ArrayList<SuperMethodInvocation> superMethods = new ArrayList<>();

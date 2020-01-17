@@ -4,6 +4,11 @@ import java.util.Comparator;
 
 import org.eclipse.jdt.core.dom.MethodDeclaration;
 
+/**
+ * Comparator of MethodDeclarations by the order on their number of parameters
+ * @author anonbnr
+ * @author Amandine Paillard
+ */
 public class MethodParamNumberComparator implements Comparator<MethodDeclaration> {
 
 	@Override
